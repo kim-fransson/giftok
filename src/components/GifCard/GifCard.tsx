@@ -7,12 +7,12 @@ export type GifCardProps = {
 export const GifCard = (props: GifCardProps) => {
   return (
     <div
-      className={`card w-full bg-base-100 shadow-xl ${
+      className={`flex items-center justify-center w-full ${
         props.isLoading && "skeleton"
       }`}
     >
-      <figure>
-        <img src={props.url} alt={props.alt} />
+      <figure className="w-full">
+        <img className="w-full h-full" src={props.url} alt={props.alt} />
       </figure>
     </div>
   );

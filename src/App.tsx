@@ -9,7 +9,7 @@ export default function App() {
   useEffect(() => {
     setIsLoading(true);
     const gf = new GiphyFetch(import.meta.env.VITE_GIPHY_API_KEY);
-    gf.trending({ limit: 1 }).then((res) => {
+    gf.trending({ limit: 20 }).then((res) => {
       setGifs(res);
       setIsLoading(false);
     });
@@ -17,14 +17,16 @@ export default function App() {
 
   return (
     gifs && (
-      <div>
+      <div className="h-screen carousel carousel-vertical">
         {gifs.data.map((gif) => (
-          <GifCard
-            key={gif.id}
-            url={gif.images.original.url}
-            alt={gif.alt_text || "gif"}
-            isLoading={isLoading}
-          />
+          <div className="carousel-item h-full">
+            <GifCard
+              key={gif.id}
+              url={gif.images.original.url}
+              alt={gif.alt_text || "gif"}
+              isLoading={isLoading}
+            />
+          </div>
         ))}
       </div>
     )
