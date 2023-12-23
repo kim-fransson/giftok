@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@fontsource-variable/raleway": "5.0.17",
+    "@giphy/js-fetch-api": "5.2.0",
     "@uidotdev/usehooks": "2.4.1",
     "react": "^18.2.0",
     "react-aria": "^3.30.0",
