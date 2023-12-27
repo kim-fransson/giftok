@@ -1,10 +1,19 @@
-import { useIntersectionObserver, useMediaQuery } from "@uidotdev/usehooks";
+import { useIntersectionObserver } from "@uidotdev/usehooks";
 import { useEffect, useState } from "react";
-import { IGif } from "@giphy/js-types";
+import { IGif, IUser, ImageAllTypes } from "@giphy/js-types";
+
+type User = Pick<IUser, "avatar_url" | "username" | "display_name">;
+type Original = Pick<ImageAllTypes, "height" | "width" | "url">;
+export type Gif = Pick<IGif, "title" | "id"> & {
+  user: User;
+  images: {
+    original: Original;
+  };
+};
 
 export type GifCardProps = {
-  gif: IGif;
-  onIntersection: (gif: IGif) => void;
+  gif: Gif;
+  onIntersection: (gif: Gif) => void;
   onLoading: (value: boolean) => void;
 };
 
@@ -15,8 +24,6 @@ export const GifCard = (props: GifCardProps) => {
   const [isLoadingGif, setIsLoadingGif] = useState(true);
 
   const [isLoadingUserAvatar, setIsLoadingUserAvatar] = useState(true);
-
-  const useIntersection = useMediaQuery("only screen and (min-width : 768px)");
 
   const [ref, entry] = useIntersectionObserver({
     threshold: 0,
@@ -37,11 +44,12 @@ export const GifCard = (props: GifCardProps) => {
   return (
     <div
       ref={ref}
-      className="flex flex-col gap-4 w-full md:rounded-lg md:overflow-hidden md:shadow-2xl relative group"
+      className="card rounded-none h-screen even:bg-primary odd:bg-secondary md:even:bg-transparent md:odd:bg-transparent
+      md:h-auto md:rounded-lg md:shadow-2xl group overflow-hidden"
     >
-      {(entry?.isIntersecting || useIntersection) && (
+      <figure className="mt-auto md:mt-0 md:h-full border-4 border-base-300 md:border-none">
         <img
-          className={`md:my-0 my-auto md:w-auto w-full ${
+          className={`w-full h-auto md:h-full ${
             isLoadingGif && "skeleton rounded-none"
           }`}
           height={gif.images.original.height}
@@ -51,8 +59,13 @@ export const GifCard = (props: GifCardProps) => {
             setIsLoadingGif(false);
           }}
         />
-      )}
-      <div className="flex flex-col gap-1 p-4 md:hidden group-hover:flex md:absolute md:bottom-4 md:left-4 md:right-4 md:bg-base-100 md:rounded-lg">
+      </figure>
+
+      <div
+        className="flex justify-end flex-col gap-1 p-4 mt-auto bg-base-300
+        md:opacity-0 md:mt-0 md:group-hover:block md:absolute md:bottom-4 md:left-4 md:right-4 md:bg-base-100 md:rounded-lg
+        md:translate-y-10 md:group-hover:translate-y-0 md:group-hover:opacity-100 md:transition-all"
+      >
         {user ? (
           <>
             <a
@@ -73,7 +86,7 @@ export const GifCard = (props: GifCardProps) => {
                 </div>
               </div>
               <span className="font-medium text-primary">
-                {user.display_name}
+                {user.display_name || user.username}
               </span>
             </a>
             <span>{gif.title}</span>

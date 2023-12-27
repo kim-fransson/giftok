@@ -12,7 +12,14 @@ export default {
     daisyui,
     // https://github.com/tailwindlabs/tailwindcss-intellisense/issues/227#issuecomment-1139895799
     ({ addUtilities }) => {
-      addUtilities({});
+      addUtilities({
+        ".app-grid": {
+          display: "grid",
+          "grid-template-rows": "auto 1fr",
+          "min-height": "100dvh",
+          width: "100dv",
+        },
+      });
     },
   ],
 };
