@@ -19,6 +19,10 @@ export default {
           "min-height": "100dvh",
           width: "100dv",
         },
+        ".bg-giphy": {
+          background:
+            "linear-gradient(to right, #fff35c , #ff6666 , #9933ff , #00ccff , #00ff99)",
+        },
       });
     },
   ],
