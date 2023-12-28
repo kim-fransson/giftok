@@ -1,6 +1,5 @@
-import { useIntersectionObserver } from "@uidotdev/usehooks";
-import { useEffect, useState } from "react";
 import { IGif, IUser, ImageAllTypes } from "@giphy/js-types";
+import { useState } from "react";
 
 type User = Pick<IUser, "avatar_url" | "username" | "display_name">;
 type Original = Pick<ImageAllTypes, "height" | "width" | "url">;
@@ -13,51 +12,32 @@ export type Gif = Pick<IGif, "title" | "id"> & {
 
 export type GifCardProps = {
   gif: Gif;
-  onIntersection: (gif: Gif) => void;
-  onLoading: (value: boolean) => void;
 };
 
 export const GifCard = (props: GifCardProps) => {
-  const { gif, onIntersection, onLoading } = props;
+  const [isGifLoading, setIsGifLoading] = useState(true); // State to track loading
+  const [isAvatarLoading, setIsAvatarLoading] = useState(true); // State to track loading
+
+  const { gif } = props;
   const user = gif.user;
-
-  const [isLoadingGif, setIsLoadingGif] = useState(true);
-
-  const [isLoadingUserAvatar, setIsLoadingUserAvatar] = useState(true);
-
-  const [ref, entry] = useIntersectionObserver({
-    threshold: 0,
-    root: null,
-    rootMargin: "0px",
-  });
-
-  useEffect(() => {
-    onLoading(isLoadingGif);
-  }, [isLoadingGif, onLoading]);
-
-  useEffect(() => {
-    if (entry?.isIntersecting) {
-      onIntersection(gif);
-    }
-  }, [entry, gif, onIntersection]);
 
   return (
     <div
-      ref={ref}
-      className="card rounded-none h-screen even:bg-primary odd:bg-secondary md:even:bg-transparent md:odd:bg-transparent
+      className="card rounded-none w-full h-screen even:bg-primary odd:bg-secondary md:even:bg-transparent md:odd:bg-transparent
       md:h-auto md:rounded-lg md:shadow-2xl group overflow-hidden"
     >
-      <figure className="mt-auto md:mt-0 md:h-full border-4 border-base-300 md:border-none">
+      <figure
+        className="mt-auto md:mt-0 md:h-full border-4 border-base-300 
+        md:border-none"
+      >
         <img
           className={`w-full h-auto md:h-full ${
-            isLoadingGif && "skeleton rounded-none"
+            isGifLoading && "skeleton rounded-none"
           }`}
           height={gif.images.original.height}
           width={gif.images.original.width}
           src={gif.images.original.url}
-          onLoad={() => {
-            setIsLoadingGif(false);
-          }}
+          onLoad={() => setIsGifLoading(false)}
         />
       </figure>
 
@@ -74,15 +54,11 @@ export const GifCard = (props: GifCardProps) => {
               target="_blank"
             >
               <div className="avatar">
-                <div
-                  className={`w-8 rounded ${isLoadingUserAvatar && "skeleton"}`}
-                >
-                  {entry?.isIntersecting && (
-                    <img
-                      src={user.avatar_url}
-                      onLoad={() => setIsLoadingUserAvatar(false)}
-                    />
-                  )}
+                <div className={`w-8 rounded ${isAvatarLoading && "skeleton"}`}>
+                  <img
+                    src={user.avatar_url}
+                    onLoad={() => setIsAvatarLoading(false)}
+                  />
                 </div>
               </div>
               <span className="font-medium text-primary">

@@ -1,78 +1,91 @@
-import { GiphyFetch } from "@giphy/js-fetch-api";
-import { useCallback, useEffect, useState } from "react";
+import { GifsResult } from "@giphy/js-fetch-api";
+import { useEffect, useRef, useState } from "react";
 import { Gif, GifCard } from "./components/GifCard/GifCard";
 import { useMediaQuery } from "@uidotdev/usehooks";
 import Logo from "./assets/logo.svg?react";
 import { twMerge } from "tailwind-merge";
 
 const GIFS_LIMIT = 20;
-const INFINITE_LOADING_THRESHOLD = 0.75;
+const INFINITY_SCROLL_THRESHOLD = 0.8;
 
 export default function App() {
-  const [gifs, setGifs] = useState<Gif[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [allGifs, setAllGifs] = useState<Gif[]>([]);
+  const [offset, setOffset] = useState(0);
+  const [lastElement, setLastElement] = useState<HTMLElement | null>(null);
   const [hasError, setHasError] = useState(false);
-  const [noMoreGifs, setNoMoreGifs] = useState(false);
+  const [totalNumberOfGifs, setTotalNumberOfGifs] = useState(0);
 
   const isSmallDevice = useMediaQuery("only screen and (max-width : 768px)");
   const isMediumDevice = useMediaQuery(
     "only screen and (min-width : 768px) and (max-width : 1024px)",
   );
 
-  const fetchAndFilterGifs = useCallback(
-    async (limit = GIFS_LIMIT, offset = 0) => {
-      setIsLoading(true);
-      setHasError(false);
-      setNoMoreGifs(false);
-      const gf = new GiphyFetch(import.meta.env.VITE_GIPHY_API_KEY);
-      const previousGifsLength = gifs.length;
-      try {
-        const res = await gf.trending({ limit, offset });
-        setGifs((current) => {
-          const seen = new Set();
-          const updatedGifsList = [...current, ...res.data];
-          return updatedGifsList.filter((gif) => {
-            const duplicate = seen.has(gif.id);
-            seen.add(gif.id);
-            return !duplicate;
-          });
-        });
-
-        if (previousGifsLength === gifs.length) {
-          setNoMoreGifs(true);
-        }
-      } catch (error) {
-        setHasError(true);
-      } finally {
-        setIsLoading(false);
+  const observer = useRef(
+    new IntersectionObserver((entries) => {
+      const last = entries[0]; // only the last element in the entries array
+      if (last.isIntersecting) {
+        setOffset((current) => current + GIFS_LIMIT);
       }
-    },
-    [],
+    }),
   );
 
-  useEffect(() => {
-    fetchAndFilterGifs();
-  }, []);
+  const fetchGifs = async () => {
+    setIsLoading(true);
+    setHasError(false);
+    try {
+      const res = await fetch(
+        `/api/gifs/trending?limit=${GIFS_LIMIT}&offset=${offset}`,
+      );
+      const gifsResult = (await res.json()) as GifsResult;
 
-  const handleIntersection = (gif: Gif) => {
-    const numberOfFetchedGifs = gifs.length;
+      const seenIds = new Set([...allGifs].map((gif) => gif.id));
+      const uniqueGifs = [...allGifs];
 
-    const indexOfIntersectedGifs = Array.from(gifs).indexOf(gif);
+      gifsResult.data.forEach((gif) => {
+        if (!seenIds.has(gif.id)) {
+          seenIds.add(gif.id);
+          uniqueGifs.push(gif);
+        }
+      });
 
-    const shouldLoadMoreGifs =
-      (indexOfIntersectedGifs + 1) / numberOfFetchedGifs >
-      INFINITE_LOADING_THRESHOLD;
-
-    if (shouldLoadMoreGifs && !isLoading) {
-      fetchAndFilterGifs(GIFS_LIMIT, numberOfFetchedGifs);
+      setAllGifs(uniqueGifs);
+      setTotalNumberOfGifs(gifsResult.pagination.total_count);
+    } catch (error) {
+      setHasError(true);
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  useEffect(() => {
+    fetchGifs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [offset]);
+
+  useEffect(() => {
+    const currentElement = lastElement;
+    const currentObserver = observer.current;
+
+    if (currentElement) {
+      currentObserver.observe(currentElement);
+    }
+
+    return () => {
+      if (currentElement) {
+        currentObserver.unobserve(currentElement);
+      }
+    };
+  }, [lastElement]);
+
   const numberOfColumns = isSmallDevice ? 1 : isMediumDevice ? 2 : 4;
+  const totalItems = allGifs.length;
+  let counter = 0;
+  let refSet = false;
 
   return (
     <div className="app-grid">
-      <div className="navbar bg-base-100 shadow-2xl fixed z-50 opacity-90 gap-4">
+      <div className="navbar bg-base-100 shadow-2xl fixed z-50 opacity-90 gap-4 pr-8">
         <Logo />
         <div className="ml-auto flex md:gap-8 gap-2">
           <div className="flex items-center gap-2">
@@ -106,35 +119,59 @@ export default function App() {
         </div>
       </div>
       <div className="max-w-7xl md:pt-24 flex-1 md:mx-auto md:p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 md:gap-4">
-        {splitIntoColumns(gifs, numberOfColumns).map((column, columnIndex) => (
-          <div key={columnIndex} className="grid md:gap-4">
-            {column.map((gif) => (
-              <GifCard
-                key={gif.id}
-                gif={gif}
-                onIntersection={handleIntersection}
-                onLoading={setIsLoading}
-              />
-            ))}
-          </div>
-        ))}
+        {splitIntoColumns(allGifs, numberOfColumns).map(
+          (column, columnIndex) => {
+            return (
+              <div key={columnIndex} className="grid md:gap-4">
+                {column.map((gif) => {
+                  const shouldSetRef =
+                    !refSet &&
+                    counter++ / totalItems >= INFINITY_SCROLL_THRESHOLD;
+                  return (
+                    <div
+                      key={gif.id}
+                      ref={(element) => {
+                        if (shouldSetRef) {
+                          setLastElement(element);
+                          refSet = true;
+                        }
+                      }}
+                      className="flex w-full"
+                    >
+                      <GifCard gif={gif} />
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          },
+        )}
       </div>
       {isLoading ? (
         <div className="flex items-center justify-center py-8">
           <span className="loading loading-dots loading-lg"></span>
         </div>
       ) : hasError ? (
-        <div className="flex items-center justify-center py-8">
+        <div className="flex flex-col gap-4 items-center justify-center py-8">
           <span className="text-error md:text-2xl text-lg font-medium">
             Failed to fetch gifs, try again?
           </span>
+          <button
+            onClick={() => fetchGifs()}
+            className="btn md:btn-lg btn-sm btn-primary"
+          >
+            Try again
+          </button>
         </div>
       ) : (
-        noMoreGifs && (
-          <div className="flex items-center justify-center py-8">
+        allGifs.length === totalNumberOfGifs && (
+          <div className="flex flex-col gap-4 items-center justify-center py-8">
             <span className="text-info md:text-2xl text-lg font-medium ">
               No more gifs for you, take a break!
             </span>
+            <button className="btn md:btn-lg btn-sm btn-primary">
+              Feeling lucky?
+            </button>
           </div>
         )
       )}
