@@ -23,13 +23,10 @@ export const GifCard = (props: GifCardProps) => {
 
   return (
     <div
-      className="card rounded-none w-full h-screen even:bg-primary odd:bg-secondary md:even:bg-transparent md:odd:bg-transparent
+      className="card rounded-none w-full h-screen
       md:h-auto md:rounded-lg md:shadow-2xl group overflow-hidden"
     >
-      <figure
-        className="mt-auto md:mt-0 md:h-full border-4 border-base-300 
-        md:border-none"
-      >
+      <figure className="mt-auto md:mt-0 md:h-full">
         <img
           className={`w-full h-auto md:h-full ${
             isGifLoading && "skeleton rounded-none"
@@ -38,11 +35,12 @@ export const GifCard = (props: GifCardProps) => {
           width={gif.images.original.width}
           src={gif.images.original.url}
           onLoad={() => setIsGifLoading(false)}
+          loading="lazy"
         />
       </figure>
 
       <div
-        className="flex justify-end flex-col gap-1 p-4 mt-auto bg-base-300
+        className="flex justify-end flex-col gap-1 p-4  bg-base-300
         md:opacity-0 md:mt-0 md:group-hover:block md:absolute md:bottom-4 md:left-4 md:right-4 md:bg-base-100 md:rounded-lg
         md:translate-y-10 md:group-hover:translate-y-0 md:group-hover:opacity-100 md:transition-all"
       >
@@ -58,6 +56,7 @@ export const GifCard = (props: GifCardProps) => {
                   <img
                     src={user.avatar_url}
                     onLoad={() => setIsAvatarLoading(false)}
+                    loading="lazy"
                   />
                 </div>
               </div>
